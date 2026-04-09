@@ -12,9 +12,30 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Pr
   try {
     return await fn();
   } catch (error: any) {
-    const isRateLimit = error?.message?.includes('429') || error?.message?.includes('high demand');
+    let isRateLimit = false;
+    let serverRetryDelay = 0;
+
+    try {
+      // The error message might be a JSON string from the API
+      const errorBody = JSON.parse(error?.message?.replace('ApiError: ', '') || '{}');
+      if (errorBody?.error?.code === 429) {
+        isRateLimit = true;
+        // Check for retryDelay in the error details (e.g., "51s")
+        const retryInfo = errorBody?.error?.details?.find((d: any) => d.retryDelay);
+        if (retryInfo?.retryDelay) {
+          serverRetryDelay = parseInt(retryInfo.retryDelay) * 1000;
+        }
+      }
+    } catch (e) {
+      // Fallback to simple string check if JSON parsing fails
+      isRateLimit = error?.message?.includes('429') || error?.message?.includes('high demand') || error?.message?.includes('RESOURCE_EXHAUSTED');
+    }
+
     if (retries > 0 && isRateLimit) {
-      await new Promise(resolve => setTimeout(resolve, delay));
+      // Use server-provided delay if available, otherwise use exponential backoff
+      const waitTime = serverRetryDelay > 0 ? serverRetryDelay + 1000 : delay;
+      console.warn(`Rate limit hit. Retrying in ${waitTime}ms...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
       return withRetry(fn, retries - 1, delay * 2);
     }
     throw error;

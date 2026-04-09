@@ -155,21 +155,7 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
       firstTypeTimeRef.current = Date.now();
     }
     
-    let value = e.target.value;
-    
-    // Psychological Trap: Neural Glitch (Optimized for performance)
-    // Occasionally double a character or skip one to simulate mental strain
-    // Reduced probability and simplified logic to prevent mobile lag
-    if (value.length > answer.length && Math.random() > 0.995) {
-      const lastChar = value.slice(-1);
-      if (Math.random() > 0.5) {
-        value += lastChar; // Double character
-      } else {
-        value = value.slice(0, -1); // Skip character
-      }
-    }
-
-    setAnswer(value);
+    setAnswer(e.target.value);
     editsCountRef.current += 1;
   };
 
@@ -363,9 +349,9 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
       <AnimatePresence mode="wait">
         <motion.div
           key={currentQuestion.id}
-          initial={{ opacity: 0, filter: 'blur(10px)' }}
-          animate={{ opacity: 1, filter: 'blur(0px)' }}
-          exit={{ opacity: 0, x: -50, filter: 'blur(5px)' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, x: -50 }}
           className="w-full space-y-8 md:space-y-12"
         >
           <QuestionHeader 

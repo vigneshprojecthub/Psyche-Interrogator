@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 export function Atmosphere() {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
+  const [isMobile, setIsMobile] = useState(false);
   const [showWatcher, setShowWatcher] = useState(false);
   const [subliminal, setSubliminal] = useState<string | null>(null);
 
@@ -22,6 +23,12 @@ export function Atmosphere() {
   const ghostY = useSpring(mouseY, springConfig);
 
   useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
     const handleMouseMove = (e: MouseEvent) => {
       mouseX.set(e.clientX);
       mouseY.set(e.clientY);
@@ -46,6 +53,7 @@ export function Atmosphere() {
     }, 10000);
 
     return () => {
+      window.removeEventListener('resize', checkMobile);
       window.removeEventListener("mousemove", handleMouseMove);
       clearInterval(watcherInterval);
       clearInterval(subliminalInterval);
@@ -70,11 +78,13 @@ export function Atmosphere() {
         )}
       </AnimatePresence>
 
-      {/* Ghost Cursor Trap */}
-      <motion.div
-        style={{ x: ghostX, y: ghostY }}
-        className="fixed top-0 left-0 w-4 h-4 rounded-full bg-red-900/10 blur-sm pointer-events-none z-50"
-      />
+      {/* Ghost Cursor Trap - Disable on mobile */}
+      {!isMobile && (
+        <motion.div
+          style={{ x: ghostX, y: ghostY }}
+          className="fixed top-0 left-0 w-4 h-4 rounded-full bg-red-900/10 blur-sm pointer-events-none z-50"
+        />
+      )}
 
       {/* The Watcher Trap */}
       {showWatcher && (
@@ -88,9 +98,9 @@ export function Atmosphere() {
         </motion.div>
       )}
 
-      {/* Heartbeat Pulse Effect */}
+      {/* Heartbeat Pulse Effect - Simplified on mobile */}
       <motion.div
-        animate={{
+        animate={isMobile ? { opacity: [0, 0.03, 0] } : {
           opacity: [0, 0.05, 0],
           scale: [1, 1.02, 1],
         }}
@@ -102,9 +112,9 @@ export function Atmosphere() {
         className="absolute inset-0 bg-red-900/5 pointer-events-none"
       />
 
-      {/* Layered radial gradients for depth */}
+      {/* Layered radial gradients for depth - Static or simplified on mobile */}
       <motion.div
-        animate={{
+        animate={isMobile ? { opacity: 0.1 } : {
           scale: [1, 1.2, 1],
           opacity: [0.1, 0.3, 0.1],
           x: [0, 10, -10, 0],
@@ -114,10 +124,10 @@ export function Atmosphere() {
           repeat: Infinity,
           ease: "easeInOut",
         }}
-        className="absolute -top-[20%] -left-[10%] h-[80%] w-[80%] rounded-full bg-radial from-[#1a0505] to-transparent blur-[120px]"
+        className={`absolute -top-[20%] -left-[10%] h-[80%] w-[80%] rounded-full bg-radial from-[#1a0505] to-transparent ${isMobile ? '' : 'blur-[120px]'}`}
       />
       <motion.div
-        animate={{
+        animate={isMobile ? { opacity: 0.05 } : {
           scale: [1, 1.1, 1],
           opacity: [0.05, 0.2, 0.05],
           y: [0, -20, 20, 0],
@@ -128,7 +138,7 @@ export function Atmosphere() {
           ease: "easeInOut",
           delay: 2,
         }}
-        className="absolute -bottom-[10%] -right-[10%] h-[70%] w-[70%] rounded-full bg-radial from-[#4a040422] to-transparent blur-[150px]"
+        className={`absolute -bottom-[10%] -right-[10%] h-[70%] w-[70%] rounded-full bg-radial from-[#4a040422] to-transparent ${isMobile ? '' : 'blur-[150px]'}`}
       />
       
       {/* Flickering Light Effect - Very Subtle */}

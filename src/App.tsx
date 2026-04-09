@@ -50,7 +50,7 @@ export default function App() {
               key="intro"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0, scale: 1.1, filter: 'blur(10px)' }}
+              exit={{ opacity: 0, scale: 1.1 }}
               className="flex-1 flex flex-col items-center justify-center p-6 text-center z-10"
             >
               <motion.h1 
