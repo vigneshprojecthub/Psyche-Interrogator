@@ -8,6 +8,19 @@ if (!apiKey) {
 
 const ai = new GoogleGenAI({ apiKey: apiKey || "" });
 
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+  try {
+    return await fn();
+  } catch (error: any) {
+    const isRateLimit = error?.message?.includes('429') || error?.message?.includes('high demand');
+    if (retries > 0 && isRateLimit) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return withRetry(fn, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+}
+
 export async function generateNextQuestion(
   previousResponses: { q: string; a: string }[],
   intensity: number
@@ -25,27 +38,28 @@ export async function generateNextQuestion(
     CRITICAL: Maintain a chilling, clinical tone.
   `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          id: { type: Type.STRING },
-          en: { type: Type.STRING },
-          ta: { type: Type.STRING },
-          tanglish: { type: Type.STRING },
-          intensity: { type: Type.NUMBER },
-          category: { type: Type.STRING }
-        },
-        required: ["id", "en", "ta", "tanglish", "intensity", "category"]
+  return withRetry(async () => {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING },
+            en: { type: Type.STRING },
+            ta: { type: Type.STRING },
+            tanglish: { type: Type.STRING },
+            intensity: { type: Type.NUMBER },
+            category: { type: Type.STRING }
+          },
+          required: ["id", "en", "ta", "tanglish", "intensity", "category"]
+        }
       }
-    }
+    });
+    return JSON.parse(response.text);
   });
-
-  return JSON.parse(response.text);
 }
 
 export async function generateFinalProfile(
@@ -71,59 +85,60 @@ export async function generateFinalProfile(
     CRITICAL: Ensure all translations are grammatically perfect, formal in Tamil, and naturally conversational in Tanglish. The tone must be clinical, cold, and definitive.
   `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          personalityTraits: {
-            type: Type.OBJECT,
-            properties: {
-              openness: { type: Type.NUMBER },
-              conscientiousness: { type: Type.NUMBER },
-              extraversion: { type: Type.NUMBER },
-              agreeableness: { type: Type.NUMBER },
-              neuroticism: { type: Type.NUMBER }
+  return withRetry(async () => {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            personalityTraits: {
+              type: Type.OBJECT,
+              properties: {
+                openness: { type: Type.NUMBER },
+                conscientiousness: { type: Type.NUMBER },
+                extraversion: { type: Type.NUMBER },
+                agreeableness: { type: Type.NUMBER },
+                neuroticism: { type: Type.NUMBER }
+              },
+              required: ["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"]
             },
-            required: ["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"]
+            honestyIndex: { type: Type.NUMBER },
+            emotionalStability: { type: Type.NUMBER },
+            hiddenConflicts: {
+              type: Type.OBJECT,
+              properties: {
+                en: { type: Type.ARRAY, items: { type: Type.STRING } },
+                ta: { type: Type.ARRAY, items: { type: Type.STRING } },
+                tanglish: { type: Type.ARRAY, items: { type: Type.STRING } }
+              },
+              required: ["en", "ta", "tanglish"]
+            },
+            socialMaskVsRealSelf: {
+              type: Type.OBJECT,
+              properties: {
+                en: { type: Type.STRING },
+                ta: { type: Type.STRING },
+                tanglish: { type: Type.STRING }
+              },
+              required: ["en", "ta", "tanglish"]
+            },
+            summary: {
+              type: Type.OBJECT,
+              properties: {
+                en: { type: Type.STRING },
+                ta: { type: Type.STRING },
+                tanglish: { type: Type.STRING }
+              },
+              required: ["en", "ta", "tanglish"]
+            }
           },
-          honestyIndex: { type: Type.NUMBER },
-          emotionalStability: { type: Type.NUMBER },
-          hiddenConflicts: {
-            type: Type.OBJECT,
-            properties: {
-              en: { type: Type.ARRAY, items: { type: Type.STRING } },
-              ta: { type: Type.ARRAY, items: { type: Type.STRING } },
-              tanglish: { type: Type.ARRAY, items: { type: Type.STRING } }
-            },
-            required: ["en", "ta", "tanglish"]
-          },
-          socialMaskVsRealSelf: {
-            type: Type.OBJECT,
-            properties: {
-              en: { type: Type.STRING },
-              ta: { type: Type.STRING },
-              tanglish: { type: Type.STRING }
-            },
-            required: ["en", "ta", "tanglish"]
-          },
-          summary: {
-            type: Type.OBJECT,
-            properties: {
-              en: { type: Type.STRING },
-              ta: { type: Type.STRING },
-              tanglish: { type: Type.STRING }
-            },
-            required: ["en", "ta", "tanglish"]
-          }
-        },
-        required: ["personalityTraits", "honestyIndex", "emotionalStability", "hiddenConflicts", "socialMaskVsRealSelf", "summary"]
+          required: ["personalityTraits", "honestyIndex", "emotionalStability", "hiddenConflicts", "socialMaskVsRealSelf", "summary"]
+        }
       }
-    }
+    });
+    return JSON.parse(response.text);
   });
-
-  return JSON.parse(response.text);
 }

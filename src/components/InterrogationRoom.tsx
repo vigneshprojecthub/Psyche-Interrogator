@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from 'react';
+import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent, memo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Question, ResponseData, PsychologicalProfile } from '../types';
 import { INITIAL_QUESTIONS } from '../constants/questions';
@@ -65,6 +65,44 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+// Memoized sub-components to prevent unnecessary re-renders during typing
+const QuestionHeader = memo(({ index, total, lang, text }: { index: number, total: number, lang: string, text: string }) => (
+  <div className="space-y-3 md:space-y-4">
+    <motion.span 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 0.2 }}
+      className="font-mono text-[9px] md:text-[10px] uppercase tracking-[0.6em] text-red-900"
+    >
+      Extraction Phase {index + 1} / {total}
+    </motion.span>
+    <h2 className="font-serif text-2xl md:text-5xl leading-tight text-stone-300">
+      {text}
+    </h2>
+  </div>
+));
+
+const LanguageSelector = memo(({ current, onSelect }: { current: string, onSelect: (l: any) => void }) => (
+  <div className="absolute top-0 right-0 p-4 flex flex-wrap justify-end gap-2 md:gap-4 z-30">
+    {[
+      { id: 'en', label: 'EN' },
+      { id: 'ta', label: 'தமிழ்' },
+      { id: 'tanglish', label: 'Tanglish' }
+    ].map((l) => (
+      <button
+        key={l.id}
+        onClick={() => onSelect(l.id)}
+        className={`px-2 py-1 rounded-md text-[9px] md:text-[10px] uppercase tracking-widest transition-all border ${
+          current === l.id 
+            ? 'text-red-500 border-red-900/30 bg-red-950/10' 
+            : 'text-stone-600 border-transparent hover:text-stone-400'
+        }`}
+      >
+        {l.label}
+      </button>
+    ))}
+  </div>
+));
+
 export function InterrogationRoom({ userName, onComplete }: InterrogationRoomProps) {
   const [questions, setQuestions] = useState<Question[]>(INITIAL_QUESTIONS);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -97,13 +135,17 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
         return;
       }
 
-      const sessionRef = await addDoc(collection(db, 'sessions'), {
-        userName: userName,
-        startTime: serverTimestamp(),
-        status: 'active',
-        uid: auth.currentUser.uid
-      }).catch(err => handleFirestoreError(err, OperationType.CREATE, 'sessions'));
-      sessionIdRef.current = sessionRef.id;
+      try {
+        const sessionRef = await addDoc(collection(db, 'sessions'), {
+          userName: userName,
+          startTime: serverTimestamp(),
+          status: 'active',
+          uid: auth.currentUser.uid
+        });
+        sessionIdRef.current = sessionRef.id;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.CREATE, 'sessions');
+      }
     };
     initSession();
   }, [userName]);
@@ -115,9 +157,10 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
     
     let value = e.target.value;
     
-    // Psychological Trap: Neural Glitch
+    // Psychological Trap: Neural Glitch (Optimized for performance)
     // Occasionally double a character or skip one to simulate mental strain
-    if (value.length > answer.length && Math.random() > 0.98) {
+    // Reduced probability and simplified logic to prevent mobile lag
+    if (value.length > answer.length && Math.random() > 0.995) {
       const lastChar = value.slice(-1);
       if (Math.random() > 0.5) {
         value += lastChar; // Double character
@@ -298,26 +341,7 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
 
   return (
     <div className="flex-1 flex flex-col items-center justify-start pt-20 md:pt-32 p-4 md:p-6 max-w-4xl mx-auto w-full relative">
-      {/* Language Selector */}
-      <div className="absolute top-0 right-0 p-4 flex flex-wrap justify-end gap-2 md:gap-4 z-30">
-        {[
-          { id: 'en', label: 'EN' },
-          { id: 'ta', label: 'தமிழ்' },
-          { id: 'tanglish', label: 'Tanglish' }
-        ].map((l) => (
-          <button
-            key={l.id}
-            onClick={() => setLang(l.id as Language)}
-            className={`px-2 py-1 rounded-md text-[9px] md:text-[10px] uppercase tracking-widest transition-all border ${
-              lang === l.id 
-                ? 'text-red-500 border-red-900/30 bg-red-950/10' 
-                : 'text-stone-600 border-transparent hover:text-stone-400'
-            }`}
-          >
-            {l.label}
-          </button>
-        ))}
-      </div>
+      <LanguageSelector current={lang} onSelect={setLang} />
 
       {isGeneratingNext && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40">
@@ -344,18 +368,12 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
           exit={{ opacity: 0, x: -50, filter: 'blur(5px)' }}
           className="w-full space-y-8 md:space-y-12"
         >
-          <div className="space-y-3 md:space-y-4">
-            <motion.span 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.2 }}
-              className="font-mono text-[9px] md:text-[10px] uppercase tracking-[0.6em] text-red-900"
-            >
-              Extraction Phase {currentIndex + 1} / {questions.length}
-            </motion.span>
-            <h2 className="font-serif text-2xl md:text-5xl leading-tight text-stone-300">
-              {currentQuestion[lang]}
-            </h2>
-          </div>
+          <QuestionHeader 
+            index={currentIndex} 
+            total={questions.length} 
+            lang={lang} 
+            text={currentQuestion[lang]} 
+          />
 
           <div className="relative group">
             <textarea
