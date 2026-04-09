@@ -164,7 +164,7 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
   const currentQuestion = questions[currentIndex];
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 max-w-4xl mx-auto w-full relative">
+    <div className="flex-1 flex flex-col items-center justify-start pt-20 md:pt-32 p-4 md:p-6 max-w-4xl mx-auto w-full relative">
       {/* Language Selector */}
       <div className="absolute top-0 right-0 p-4 flex flex-wrap justify-end gap-2 md:gap-4 z-30">
         {[
