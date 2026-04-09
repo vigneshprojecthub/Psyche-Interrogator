@@ -45,18 +45,20 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Pr
 export async function generateNextQuestion(
   previousResponses: { q: string; a: string }[],
   intensity: number
-): Promise<Question> {
+): Promise<{ decision: 'FOLLOW_UP' | 'PROCEED'; question?: Question }> {
+  const lastResponse = previousResponses[previousResponses.length - 1];
+  
   const prompt = `
-    Based on these previous psychological responses:
-    ${previousResponses.map(r => `Q: ${r.q}\nA: ${r.a}`).join('\n')}
+    Analyze this response:
+    Q: ${lastResponse.q}
+    A: ${lastResponse.a}
 
-    Generate a follow-up question that:
-    1. Probes deeper into a specific emotional point mentioned in the LAST answer.
-    2. Has an intensity of ${intensity}/10.
-    3. Feels intrusive but calm.
-    4. Provide in en, ta, and tanglish.
+    Decision:
+    - If the answer is vague, short, or evasive, return FOLLOW_UP and a probing question.
+    - If the answer is detailed or satisfactory, return PROCEED.
 
-    CRITICAL: Maintain a chilling, clinical tone.
+    Follow-up intensity: ${intensity}/10.
+    Provide question in en, ta, tanglish.
   `;
 
   return withRetry(async () => {
@@ -68,14 +70,20 @@ export async function generateNextQuestion(
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            id: { type: Type.STRING },
-            en: { type: Type.STRING },
-            ta: { type: Type.STRING },
-            tanglish: { type: Type.STRING },
-            intensity: { type: Type.NUMBER },
-            category: { type: Type.STRING }
+            decision: { type: Type.STRING, enum: ["FOLLOW_UP", "PROCEED"] },
+            question: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                en: { type: Type.STRING },
+                ta: { type: Type.STRING },
+                tanglish: { type: Type.STRING },
+                intensity: { type: Type.NUMBER },
+                category: { type: Type.STRING }
+              }
+            }
           },
-          required: ["id", "en", "ta", "tanglish", "intensity", "category"]
+          required: ["decision"]
         }
       }
     });

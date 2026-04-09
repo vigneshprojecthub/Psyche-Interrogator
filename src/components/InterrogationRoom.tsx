@@ -227,15 +227,24 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
 
       // Generate next question if needed
       let nextQuestion: Question | null = null;
+      
+      // Sync every question and decide if follow-up is needed
       if (questions.length < 15) {
         try {
-          // Increase probability of follow-up or just always do it if we want more questions
-          if (Math.random() > 0.3) {
-            nextQuestion = await generateNextQuestion(updatedResponses, Math.min(10, currentQuestion.intensity + 1));
+          // Add a timeout safety net: if AI takes more than 8 seconds, just proceed to static questions
+          const aiPromise = generateNextQuestion(updatedResponses, Math.min(10, currentQuestion.intensity + 1));
+          const timeoutPromise = new Promise<{ decision: 'PROCEED' }>(resolve => 
+            setTimeout(() => resolve({ decision: 'PROCEED' }), 8000)
+          );
+
+          const result = await Promise.race([aiPromise, timeoutPromise]);
+          
+          if (result.decision === 'FOLLOW_UP' && result.question) {
+            nextQuestion = result.question;
           }
         } catch (err) {
           console.error("Next question generation failed", err);
-          // Don't set error here, just continue with static questions if generation fails
+          // Fallback to proceeding normally
         }
       }
 
@@ -251,7 +260,7 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
         setQuestions(newQuestions);
         setCurrentIndex(prev => prev + 1);
       } else if (currentIndex < questions.length - 1) {
-        // Only increment if we actually have another question in the static list
+        // Move to next static question
         setCurrentIndex(prev => prev + 1);
       } else {
         // We were at the end and failed to generate next/profile
