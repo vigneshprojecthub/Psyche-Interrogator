@@ -1,7 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { Question, ResponseData, AnalysisResult, PsychologicalProfile } from "../types";
+import { Question, PsychologicalProfile } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  console.error("GEMINI_API_KEY is not set. Please ensure it is configured in your environment variables.");
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey || "" });
 
 export async function generateNextQuestion(
   previousResponses: { q: string; a: string }[],
