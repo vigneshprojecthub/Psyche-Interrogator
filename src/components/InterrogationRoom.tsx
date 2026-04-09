@@ -23,6 +23,8 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
   const [allResponses, setAllResponses] = useState<{ q: string; a: string }[]>([]);
   const [lang, setLang] = useState<Language>('en');
   
+  const [error, setError] = useState<string | null>(null);
+  
   // Tracking refs
   const startTimeRef = useRef<number>(Date.now());
   const firstTypeTimeRef = useRef<number | null>(null);
@@ -117,16 +119,24 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
           return;
         } catch (err) {
           console.error("Final profile generation failed", err);
+          setError("The neural engine failed to finalize your profile. This usually happens if the API key is missing or invalid.");
+          setIsAnalyzing(false);
+          setIsGeneratingNext(false);
+          return;
         }
       }
 
       // Generate next question if needed
       let nextQuestion: Question | null = null;
-      if (questions.length < 15 && Math.random() > 0.5) {
+      if (questions.length < 15) {
         try {
-          nextQuestion = await generateNextQuestion(updatedResponses, Math.min(10, currentQuestion.intensity + 1));
+          // Increase probability of follow-up or just always do it if we want more questions
+          if (Math.random() > 0.3) {
+            nextQuestion = await generateNextQuestion(updatedResponses, Math.min(10, currentQuestion.intensity + 1));
+          }
         } catch (err) {
           console.error("Next question generation failed", err);
+          // Don't set error here, just continue with static questions if generation fails
         }
       }
 
@@ -140,15 +150,25 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
         const newQuestions = [...questions];
         newQuestions.splice(currentIndex + 1, 0, nextQuestion);
         setQuestions(newQuestions);
+        setCurrentIndex(prev => prev + 1);
+      } else if (currentIndex < questions.length - 1) {
+        // Only increment if we actually have another question in the static list
+        setCurrentIndex(prev => prev + 1);
+      } else {
+        // We were at the end and failed to generate next/profile
+        setError("The interrogation has reached its limit. No further questions can be generated.");
+        setIsAnalyzing(false);
+        setIsGeneratingNext(false);
+        return;
       }
 
-      setCurrentIndex(prev => prev + 1);
       setIsAnalyzing(false);
       setIsGeneratingNext(false);
       window.dispatchEvent(new CustomEvent('psyche-question-change'));
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Submission failed:", error);
+      setError(error?.message || "An unexpected cognitive error occurred.");
       setIsAnalyzing(false);
       setIsGeneratingNext(false);
     }
@@ -162,6 +182,49 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
   };
 
   const currentQuestion = questions[currentIndex];
+
+  if (error) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto">
+        <h2 className="font-serif text-3xl text-red-600 mb-6 uppercase tracking-tighter">System Malfunction</h2>
+        <p className="text-stone-400 font-light text-sm leading-relaxed mb-8">
+          The interrogation was interrupted by an unexpected cognitive error. 
+          The neural engine has been safely throttled.
+        </p>
+        <div className="bg-red-950/20 border border-red-900/30 p-4 rounded mb-8 w-full">
+          <p className="text-red-500 font-mono text-[10px] uppercase tracking-widest break-words">
+            {error}
+          </p>
+        </div>
+        <button 
+          onClick={() => {
+            setError(null);
+            window.location.reload();
+          }}
+          className="px-8 py-3 border border-red-900/30 text-red-500 text-[10px] uppercase tracking-[0.4em] hover:bg-red-950/10 transition-all rounded-full"
+        >
+          Reboot Interface
+        </button>
+      </div>
+    );
+  }
+
+  if (!currentQuestion) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+        <h2 className="font-serif text-2xl text-red-900 mb-4">Neural Link Severed</h2>
+        <p className="text-stone-500 font-mono text-xs uppercase tracking-widest">
+          The interrogation has reached an unstable state.
+        </p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-8 px-6 py-2 border border-red-900/30 text-red-500 text-[10px] uppercase tracking-widest hover:bg-red-950/10 transition-all"
+        >
+          Reboot Interface
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col items-center justify-start pt-20 md:pt-32 p-4 md:p-6 max-w-4xl mx-auto w-full relative">
