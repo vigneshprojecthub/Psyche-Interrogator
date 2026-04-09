@@ -1,23 +1,121 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following data structures:
+//
+// Collection: sessions
+// Document ID: auto-generated
+// Fields:
+//   - userName: string (required) - Subject's name
+//   - startTime: timestamp (required) - Session start time
+//   - endTime: timestamp (optional) - Session end time
+//   - status: string (required, enum: ['active', 'completed']) - Session status
+//   - uid: string (required) - Owner's UID
+//
+// Collection: sessions/{sessionId}/responses
+// Document ID: auto-generated
+// Fields:
+//   - questionId: string (required)
+//   - questionText: string (required)
+//   - answer: string (required)
+//   - isFollowUp: bool (optional)
+//   - timeToFirstType: number (optional)
+//   - totalTime: number (optional)
+//   - answerEditsCount: number (optional)
+//   - timestamp: timestamp (required)
+//
+// ===============================================================
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Public access for the "free" interrogation flow
-    // In a production app, you'd want to secure this with session tokens or similar
-    
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "vigneshselvam442@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidSession(data) {
+      return hasRequiredFields(['userName', 'startTime', 'status', 'uid']) &&
+             data.userName is string && data.userName.size() >= 2 && data.userName.size() <= 100 &&
+             data.status in ['active', 'completed'] &&
+             data.uid == request.auth.uid;
+    }
+
+    function isValidResponse(data) {
+      return hasRequiredFields(['questionId', 'questionText', 'answer', 'timestamp']) &&
+             data.questionId is string && data.questionId.size() <= 100 &&
+             data.questionText is string && data.questionText.size() <= 1000 &&
+             data.answer is string && data.answer.size() <= 5000 &&
+             (!('isFollowUp' in data) || data.isFollowUp is bool) &&
+             (!('timeToFirstType' in data) || data.timeToFirstType is number) &&
+             (!('totalTime' in data) || data.totalTime is number) &&
+             (!('answerEditsCount' in data) || data.answerEditsCount is number);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
     match /sessions/{sessionId} {
-      allow read, create, update: if true;
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidSession(request.resource.data);
+      allow update: if isDocOwner() && isValidSession(request.resource.data) || isAdmin();
+      allow delete: if isAdmin();
 
       match /responses/{responseId} {
-        allow read, create: if true;
+        allow read: if get(/databases/$(database)/documents/sessions/$(sessionId)).data.uid == request.auth.uid || isAdmin();
+        allow create: if get(/databases/$(database)/documents/sessions/$(sessionId)).data.uid == request.auth.uid && isValidResponse(request.resource.data);
+        allow update, delete: if isAdmin();
       }
     }
 
     match /analysis/{analysisId} {
-      allow read, create: if true;
+      allow read: if isAdmin() || (isAuthenticated() && get(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.uid == request.auth.uid);
+      allow create: if isAuthenticated() && get(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
     match /users/{userId} {
-      allow read, write: if false; // Auth-based users disabled
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isOwner(userId) && request.resource.data.role == 'user';
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

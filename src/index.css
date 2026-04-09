@@ -6,12 +6,23 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --color-blood: #880808;
   --color-void: #0a0a0a;
+  
+  /* PDF Safe Colors (Hex) */
+  --color-safe-red-900: #450a0a;
+  --color-safe-red-950: #1a0505;
+  --color-safe-stone-400: #a8a29e;
+  --color-safe-stone-500: #78716c;
+  --color-safe-stone-600: #57534e;
+  --color-safe-stone-700: #44403c;
+  --color-safe-stone-800: #292524;
+  --color-safe-stone-900: #1c1917;
+  --color-safe-stone-950: #0c0a09;
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono&display=swap');
 
 body {
-  @apply bg-[#0a0a0a] text-stone-400 antialiased selection:bg-red-900/30 selection:text-red-200;
+  @apply bg-[#0a0a0a] text-safe-stone-400 antialiased selection:bg-safe-red-900/30 selection:text-red-200;
   font-family: var(--font-sans);
   overflow-x: hidden;
 }

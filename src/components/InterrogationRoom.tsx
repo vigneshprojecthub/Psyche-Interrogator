@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Question, ResponseData, PsychologicalProfile } from '../types';
 import { INITIAL_QUESTIONS } from '../constants/questions';
 import { generateNextQuestion, generateFinalProfile } from '../lib/gemini';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { collection, addDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2, Send, Globe } from 'lucide-react';
 
@@ -12,6 +12,57 @@ type Language = 'en' | 'ta' | 'tanglish';
 interface InterrogationRoomProps {
   userName: string;
   onComplete: (profile: PsychologicalProfile) => void;
+}
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
 }
 
 export function InterrogationRoom({ userName, onComplete }: InterrogationRoomProps) {
@@ -34,11 +85,24 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
   useEffect(() => {
     // Initialize session
     const initSession = async () => {
+      // Wait for auth to be ready
+      let retryCount = 0;
+      while (!auth.currentUser && retryCount < 10) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        retryCount++;
+      }
+
+      if (!auth.currentUser) {
+        setError("Authentication failed. Please refresh.");
+        return;
+      }
+
       const sessionRef = await addDoc(collection(db, 'sessions'), {
         userName: userName,
         startTime: serverTimestamp(),
-        status: 'active'
-      });
+        status: 'active',
+        uid: auth.currentUser.uid
+      }).catch(err => handleFirestoreError(err, OperationType.CREATE, 'sessions'));
       sessionIdRef.current = sessionRef.id;
     };
     initSession();
@@ -83,16 +147,20 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
 
     try {
       const currentQuestion = questions[currentIndex];
+      if (!currentQuestion) {
+        throw new Error("Question context lost. Please restart the interrogation.");
+      }
       const previousContext = allResponses.map(r => ({ q: r.q, a: r.a }));
       
       // Store in Firestore (non-blocking)
       if (sessionIdRef.current) {
-        addDoc(collection(db, `sessions/${sessionIdRef.current}/responses`), {
+        const path = `sessions/${sessionIdRef.current}/responses`;
+        addDoc(collection(db, path), {
           ...responseData,
           questionId: currentQuestion.id,
           questionText: currentQuestion[lang],
           timestamp: serverTimestamp()
-        }).catch(() => {});
+        }).catch(err => handleFirestoreError(err, OperationType.CREATE, path));
       }
 
       const updatedResponses = [...allResponses, { q: currentQuestion[lang], a: answer }];
@@ -103,17 +171,19 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
         try {
           const finalProfile = await generateFinalProfile(updatedResponses);
           if (sessionIdRef.current) {
-            await setDoc(doc(db, 'sessions', sessionIdRef.current), {
+            const path = 'sessions';
+            await setDoc(doc(db, path, sessionIdRef.current), {
               status: 'completed',
               endTime: serverTimestamp()
-            }, { merge: true });
+            }, { merge: true }).catch(err => handleFirestoreError(err, OperationType.UPDATE, `${path}/${sessionIdRef.current}`));
             
-            await addDoc(collection(db, 'analysis'), {
+            const analysisPath = 'analysis';
+            await addDoc(collection(db, analysisPath), {
               sessionId: sessionIdRef.current,
               userName: userName,
               ...finalProfile,
               timestamp: serverTimestamp()
-            });
+            }).catch(err => handleFirestoreError(err, OperationType.CREATE, analysisPath));
           }
           onComplete(finalProfile);
           return;
@@ -298,19 +368,19 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
               autoFocus
             />
             
-            <div className="absolute bottom-4 right-0 flex items-center gap-4">
+            <div className="absolute bottom-6 right-0 flex items-center gap-4">
               {isAnalyzing ? (
-                <div className="flex items-center gap-2 text-red-950 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.4em] animate-pulse">
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                <div className="flex items-center gap-2 text-red-950 font-mono text-[10px] md:text-[12px] uppercase tracking-[0.4em] animate-pulse">
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Neural Sync
                 </div>
               ) : (
                 <button
                   onClick={handleSubmit}
                   disabled={!answer.trim()}
-                  className="p-2 text-stone-800 hover:text-red-900 transition-all duration-500 disabled:opacity-0 glitch-hover"
+                  className="p-4 text-stone-800 hover:text-red-900 transition-all duration-500 disabled:opacity-0 glitch-hover"
                 >
-                  <Send className="w-6 h-6" />
+                  <Send className="w-8 h-8 md:w-10 md:h-10" />
                 </button>
               )}
             </div>

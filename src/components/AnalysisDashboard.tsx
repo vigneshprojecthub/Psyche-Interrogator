@@ -112,10 +112,10 @@ export function AnalysisDashboard({ profile, userName }: AnalysisDashboardProps)
         {/* Report Content */}
         <div 
           ref={reportRef} 
-          className="space-y-12 md:space-y-16 p-6 md:p-12 rounded-3xl border"
-          style={{ backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.05)' }}
+          className="space-y-12 md:space-y-16 p-6 md:p-12 rounded-3xl border border-safe-stone-900"
+          style={{ backgroundColor: 'rgba(0,0,0,0.2)', borderColor: '#1c1917' }}
         >
-          <header className="space-y-4 border-b pb-8" style={{ borderColor: 'rgba(69,10,10,0.2)' }}>
+          <header className="space-y-4 border-b border-safe-red-900/20 pb-8" style={{ borderColor: 'rgba(69,10,10,0.2)' }}>
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <span className="font-mono text-[10px] uppercase tracking-[0.5em]" style={{ color: 'rgba(127,29,29,0.6)' }}>
@@ -136,7 +136,7 @@ export function AnalysisDashboard({ profile, userName }: AnalysisDashboardProps)
             {/* Main Summary */}
             <div className="lg:col-span-2 space-y-8 md:space-y-12">
               <section className="space-y-6">
-                <h3 className="font-mono text-[10px] uppercase tracking-widest border-l-2 pl-4" style={{ color: 'rgba(127,29,29,0.4)', borderColor: '#7f1d1d' }}>Neural Autopsy</h3>
+                <h3 className="font-mono text-[10px] uppercase tracking-widest border-l-2 border-safe-red-900 pl-4" style={{ color: 'rgba(127,29,29,0.4)', borderColor: '#7f1d1d' }}>Neural Autopsy</h3>
                 <p className="text-xl md:text-3xl font-light leading-relaxed italic" style={{ color: '#a8a29e' }}>
                   {profile.summary[lang]}
                 </p>
@@ -181,7 +181,7 @@ export function AnalysisDashboard({ profile, userName }: AnalysisDashboardProps)
               </div>
 
               <section className="space-y-6">
-                <h3 className="font-mono text-[10px] uppercase tracking-widest border-l-2 pl-4" style={{ color: 'rgba(127,29,29,0.4)', borderColor: '#7f1d1d' }}>The Rot Beneath</h3>
+                <h3 className="font-mono text-[10px] uppercase tracking-widest border-l-2 border-safe-red-900 pl-4" style={{ color: 'rgba(127,29,29,0.4)', borderColor: '#7f1d1d' }}>The Rot Beneath</h3>
                 <p className="text-base md:text-xl font-light leading-relaxed italic" style={{ color: '#78716c' }}>
                   "{profile.socialMaskVsRealSelf[lang]}"
                 </p>
@@ -224,7 +224,7 @@ export function AnalysisDashboard({ profile, userName }: AnalysisDashboardProps)
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.2 }}
-                      className="text-sm font-light border-l pl-4 py-1"
+                      className="text-sm font-light border-l border-safe-red-900/20 pl-4 py-1"
                       style={{ color: '#57534e', borderColor: 'rgba(69,10,10,0.2)' }}
                     >
                       {conflict}

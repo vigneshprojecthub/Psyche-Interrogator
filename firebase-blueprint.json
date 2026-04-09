@@ -1,70 +1,86 @@
 {
   "entities": {
-    "User": {
-      "title": "User",
-      "description": "A user of the application.",
-      "type": "object",
-      "properties": {
-        "uid": { "type": "string" },
-        "email": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["uid", "createdAt"]
-    },
     "Session": {
       "title": "Session",
-      "description": "A psychological analysis session.",
+      "description": "A psychological interrogation session",
       "type": "object",
       "properties": {
-        "userName": { "type": "string" },
-        "startTime": { "type": "string", "format": "date-time" },
-        "endTime": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["active", "completed"] }
+        "userName": {
+          "type": "string",
+          "description": "Name of the subject"
+        },
+        "startTime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the session started"
+        },
+        "endTime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the session ended"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "completed"],
+          "description": "Current status of the session"
+        }
       },
       "required": ["userName", "startTime", "status"]
     },
     "Response": {
       "title": "Response",
-      "description": "A user's response to a specific question.",
+      "description": "A subject's response to an interrogation question",
       "type": "object",
       "properties": {
-        "sessionId": { "type": "string" },
-        "questionId": { "type": "string" },
-        "questionText": { "type": "string" },
-        "answer": { "type": "string" },
-        "responseTime": { "type": "number", "description": "Time in ms" },
-        "typingStartDelay": { "type": "number", "description": "Time in ms" },
-        "answerEditsCount": { "type": "number" },
-        "hesitationScore": { "type": "number" },
-        "sentiment": { "type": "string" },
-        "confidenceScore": { "type": "number" },
-        "contradictionFlag": { "type": "boolean" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "questionId": {
+          "type": "string",
+          "description": "ID of the question"
+        },
+        "questionText": {
+          "type": "string",
+          "description": "The text of the question asked"
+        },
+        "answer": {
+          "type": "string",
+          "description": "The subject's confession"
+        },
+        "isFollowUp": {
+          "type": "boolean",
+          "description": "Whether this was an AI-generated follow-up"
+        },
+        "timeToFirstType": {
+          "type": "number",
+          "description": "Latency before first keystroke in ms"
+        },
+        "totalTime": {
+          "type": "number",
+          "description": "Total time spent answering in ms"
+        },
+        "answerEditsCount": {
+          "type": "number",
+          "description": "Number of times the answer was edited"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the response was submitted"
+        }
       },
-      "required": ["sessionId", "questionId", "answer", "timestamp"]
-    },
-    "Analysis": {
-      "title": "Analysis",
-      "description": "The final psychological profile generated for a session.",
-      "type": "object",
-      "properties": {
-        "sessionId": { "type": "string" },
-        "userName": { "type": "string" },
-        "personalityTraits": { "type": "object" },
-        "honestyIndex": { "type": "number" },
-        "emotionalStability": { "type": "number" },
-        "hiddenConflicts": { "type": "array", "items": { "type": "string" } },
-        "socialMaskVsRealSelf": { "type": "string" },
-        "summary": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
-      },
-      "required": ["sessionId", "userName", "timestamp"]
+      "required": ["questionId", "questionText", "answer", "timestamp"]
     }
   },
   "firestore": {
-    "/users/{userId}": { "schema": "User", "description": "User profiles" },
-    "/sessions/{sessionId}": { "schema": "Session", "description": "Analysis sessions" },
-    "/sessions/{sessionId}/responses/{responseId}": { "schema": "Response", "description": "Individual question responses" },
-    "/analysis/{analysisId}": { "schema": "Analysis", "description": "Final psychological profiles" }
+    "/sessions/{sessionId}": {
+      "schema": "Session",
+      "description": "Root session documents"
+    },
+    "/sessions/{sessionId}/responses/{responseId}": {
+      "schema": "Response",
+      "description": "Individual responses within a session"
+    },
+    "/analysis/{analysisId}": {
+      "schema": "PsychologicalProfile",
+      "description": "Final psychological profiles generated for sessions"
+    }
   }
 }
