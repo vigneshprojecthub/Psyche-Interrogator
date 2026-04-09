@@ -1,0 +1,70 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "createdAt"]
+    },
+    "Session": {
+      "title": "Session",
+      "description": "A psychological analysis session.",
+      "type": "object",
+      "properties": {
+        "userName": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["active", "completed"] }
+      },
+      "required": ["userName", "startTime", "status"]
+    },
+    "Response": {
+      "title": "Response",
+      "description": "A user's response to a specific question.",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "questionId": { "type": "string" },
+        "questionText": { "type": "string" },
+        "answer": { "type": "string" },
+        "responseTime": { "type": "number", "description": "Time in ms" },
+        "typingStartDelay": { "type": "number", "description": "Time in ms" },
+        "answerEditsCount": { "type": "number" },
+        "hesitationScore": { "type": "number" },
+        "sentiment": { "type": "string" },
+        "confidenceScore": { "type": "number" },
+        "contradictionFlag": { "type": "boolean" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sessionId", "questionId", "answer", "timestamp"]
+    },
+    "Analysis": {
+      "title": "Analysis",
+      "description": "The final psychological profile generated for a session.",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "userName": { "type": "string" },
+        "personalityTraits": { "type": "object" },
+        "honestyIndex": { "type": "number" },
+        "emotionalStability": { "type": "number" },
+        "hiddenConflicts": { "type": "array", "items": { "type": "string" } },
+        "socialMaskVsRealSelf": { "type": "string" },
+        "summary": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sessionId", "userName", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/sessions/{sessionId}": { "schema": "Session", "description": "Analysis sessions" },
+    "/sessions/{sessionId}/responses/{responseId}": { "schema": "Response", "description": "Individual question responses" },
+    "/analysis/{analysisId}": { "schema": "Analysis", "description": "Final psychological profiles" }
+  }
+}
