@@ -230,30 +230,36 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
       let nextQuestion: Question | null = null;
       
       // Decide if we should attempt a follow-up to save API quota
-      // Criteria: It's been at least 3 questions since the last follow-up
-      // This ensures they are "not frequent" while allowing deep analysis on every few questions
-      const shouldAttemptFollowUp = 
-        questions.length < 15 && 
-        (currentIndex - lastFollowUpIndexRef.current) >= 3;
+      // We now attempt a follow-up on every question (up to 15 total)
+      // The AI's internal logic will decide if the answer is "unsatisfactory" enough to trigger it
+      const shouldAttemptFollowUp = questions.length < 15;
 
       if (shouldAttemptFollowUp) {
+        console.log("Attempting AI follow-up analysis...");
         try {
           // Add a timeout safety net: if AI takes more than 8 seconds, just proceed to static questions
           const aiPromise = generateNextQuestion(updatedResponses, Math.min(10, currentQuestion.intensity + 1));
           const timeoutPromise = new Promise<{ decision: 'PROCEED' }>(resolve => 
-            setTimeout(() => resolve({ decision: 'PROCEED' }), 8000)
+            setTimeout(() => {
+              console.warn("AI follow-up timed out after 8s");
+              resolve({ decision: 'PROCEED' });
+            }, 8000)
           );
 
           const result = await Promise.race([aiPromise, timeoutPromise]);
+          console.log("AI Decision:", result.decision);
           
           if (result.decision === 'FOLLOW_UP' && result.question) {
             nextQuestion = result.question;
             lastFollowUpIndexRef.current = currentIndex;
+            console.log("Follow-up question generated:", nextQuestion.en);
           }
         } catch (err) {
           console.error("Next question generation failed", err);
           // Fallback to proceeding normally
         }
+      } else {
+        console.log(`Follow-up skipped. Gap: ${currentIndex - lastFollowUpIndexRef.current}/3`);
       }
 
       // Transition to next question

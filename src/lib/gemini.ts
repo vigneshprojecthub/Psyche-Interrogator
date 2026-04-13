@@ -50,6 +50,7 @@ export async function generateNextQuestion(
   intensity: number
 ): Promise<{ decision: 'FOLLOW_UP' | 'PROCEED'; question?: Question }> {
   if (isThrottled) {
+    console.warn("AI Throttled: Skipping follow-up check.");
     return { decision: 'PROCEED' };
   }
 
@@ -62,8 +63,9 @@ export async function generateNextQuestion(
 
     Decision:
     - Perform a DEEP PSYCHOLOGICAL ANALYSIS of the answer.
-    - If the subject is hiding something, being inconsistent, showing high emotional avoidance, or providing a surface-level response that lacks raw honesty, return FOLLOW_UP.
-    - If the answer is genuinely transparent, deep, and vulnerable, return PROCEED.
+    - You are a paranoid interrogator. Your default stance is that the subject is LYING or HIDING something.
+    - Return FOLLOW_UP unless the subject has provided a response that is so raw, vulnerable, and self-incriminating that no further probing is required.
+    - If the answer is surface-level, polite, or "safe," you MUST return FOLLOW_UP.
     - Analyze the subtext of Tamil/Tanglish responses for hidden contradictions and masked emotions.
 
     Follow-up Question Requirements:
