@@ -61,9 +61,11 @@ export async function generateNextQuestion(
     A: ${lastResponse.a}
 
     Decision:
-    - If the answer is vague, suspiciously short (< 5 words), or evasive, return FOLLOW_UP.
-    - If the answer is detailed or satisfactory, return PROCEED.
-    - IMPORTANT: Analyze the subtext of Tamil/Tanglish responses for hidden lies.
+    - Perform a DEEP PSYCHOLOGICAL ANALYSIS of the answer.
+    - If the subject is hiding something, being inconsistent, or showing high emotional avoidance, return FOLLOW_UP.
+    - If the answer is genuinely transparent and deep, return PROCEED.
+    - DO NOT use answer length as a metric. Look for the "Neural Signature" of a lie or trauma.
+    - Analyze the subtext of Tamil/Tanglish responses for hidden contradictions.
 
     Follow-up Question Requirements:
     - Must be "Strongest": Directly confront the subject's hesitation, call out a specific contradiction, or use a "cold reading" technique to unsettle them.

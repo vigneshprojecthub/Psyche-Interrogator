@@ -229,11 +229,12 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
       // Generate next question if needed
       let nextQuestion: Question | null = null;
       
-      // Decide if we should even attempt a follow-up to save API quota
-      // Criteria: Answer is very short (< 15 chars) OR it's been 5 questions since last follow-up
+      // Decide if we should attempt a follow-up to save API quota
+      // Criteria: It's been at least 2 questions since the last follow-up
+      // This ensures they are "not frequent" while allowing deep analysis on every few questions
       const shouldAttemptFollowUp = 
         questions.length < 15 && 
-        (answer.trim().length < 15 || (currentIndex - lastFollowUpIndexRef.current) >= 5);
+        (currentIndex - lastFollowUpIndexRef.current) >= 2;
 
       if (shouldAttemptFollowUp) {
         try {
