@@ -42,61 +42,84 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Pr
   }
 }
 
+let isThrottled = false;
+let throttleTimer: NodeJS.Timeout | null = null;
+
 export async function generateNextQuestion(
   previousResponses: { q: string; a: string }[],
   intensity: number
 ): Promise<{ decision: 'FOLLOW_UP' | 'PROCEED'; question?: Question }> {
+  if (isThrottled) {
+    return { decision: 'PROCEED' };
+  }
+
   const lastResponse = previousResponses[previousResponses.length - 1];
   
   const prompt = `
-    Analyze this response:
+    Analyze this response (it may be in English, Tamil, or Tanglish):
     Q: ${lastResponse.q}
     A: ${lastResponse.a}
 
     Decision:
-    - If the answer is vague, short, or evasive, return FOLLOW_UP and a probing question.
+    - If the answer is vague, suspiciously short (< 5 words), or evasive, return FOLLOW_UP.
     - If the answer is detailed or satisfactory, return PROCEED.
+    - IMPORTANT: Analyze the subtext of Tamil/Tanglish responses for hidden lies.
 
-    Follow-up intensity: ${intensity}/10.
-    Provide question in en, ta, tanglish.
+    Follow-up Question Requirements:
+    - Must be "Strongest": Directly confront the subject's hesitation, call out a specific contradiction, or use a "cold reading" technique to unsettle them.
+    - Do not be polite. Be clinical, cold, and intellectually superior.
+    - Intensity: ${intensity}/10.
+    - Provide in en, ta, tanglish.
   `;
 
-  return withRetry(async () => {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            decision: { type: Type.STRING, enum: ["FOLLOW_UP", "PROCEED"] },
-            question: {
-              type: Type.OBJECT,
-              properties: {
-                id: { type: Type.STRING },
-                en: { type: Type.STRING },
-                ta: { type: Type.STRING },
-                tanglish: { type: Type.STRING },
-                intensity: { type: Type.NUMBER },
-                category: { type: Type.STRING }
+  try {
+    return await withRetry(async () => {
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              decision: { type: Type.STRING, enum: ["FOLLOW_UP", "PROCEED"] },
+              question: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  en: { type: Type.STRING },
+                  ta: { type: Type.STRING },
+                  tanglish: { type: Type.STRING },
+                  intensity: { type: Type.NUMBER },
+                  category: { type: Type.STRING }
+                }
               }
-            }
-          },
-          required: ["decision"]
+            },
+            required: ["decision"]
+          }
         }
-      }
+      });
+      return JSON.parse(response.text);
     });
-    return JSON.parse(response.text);
-  });
+  } catch (error) {
+    // If we hit rate limits repeatedly, throttle for 2 minutes
+    if (error instanceof Error && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED'))) {
+      isThrottled = true;
+      if (throttleTimer) clearTimeout(throttleTimer);
+      throttleTimer = setTimeout(() => { isThrottled = false; }, 120000);
+    }
+    return { decision: 'PROCEED' };
+  }
 }
 
 export async function generateFinalProfile(
   responses: { q: string; a: string }[]
 ): Promise<PsychologicalProfile> {
   const prompt = `
-    Generate a comprehensive psychological profile based on these interrogation results:
+    Generate an IN-DEPTH psychological profile based on these interrogation results:
     ${responses.map(r => `Q: ${r.q}\nA: ${r.a}`).join('\n\n')}
+
+    The subject may have answered in English, Tamil, or Tanglish. Analyze the subtext and emotional patterns across all languages.
 
     Provide the profile in three formats:
     - en: English
@@ -104,14 +127,16 @@ export async function generateFinalProfile(
     - tanglish: Tamil written in English script (Tanglish)
 
     For each language, provide:
-    1. Big Five personality traits (0-100) - these are numeric and same for all.
-    2. Honesty Index (0-100).
+    1. Big Five personality traits (0-100).
+    2. Honesty Index (0-100) - analyze consistency across answers.
     3. Emotional Stability Score (0-100).
-    4. Hidden Conflict Indicators (list of strings).
-    5. Social Mask vs Real Self comparison.
-    6. A powerful, minimal summary.
+    4. Hidden Conflict Indicators (list of strings) - deep psychological tensions.
+    5. Social Mask vs Real Self comparison - how they present vs who they are.
+    6. A powerful, minimal summary - the "Core Truth" discovered.
+    7. A Psychological Archetype (e.g., "The Wounded Healer", "The Machiavellian Architect", "The Fragile Perfectionist").
+    8. Dark Triad Traits (Narcissism, Machiavellianism, Psychopathy) from 0-100.
     
-    CRITICAL: Ensure all translations are grammatically perfect, formal in Tamil, and naturally conversational in Tanglish. The tone must be clinical, cold, and definitive.
+    CRITICAL: The analysis must be clinical, cold, and piercing. Do not be polite. Uncover the darkness.
   `;
 
   return withRetry(async () => {
@@ -162,9 +187,27 @@ export async function generateFinalProfile(
                 tanglish: { type: Type.STRING }
               },
               required: ["en", "ta", "tanglish"]
+            },
+            archetype: {
+              type: Type.OBJECT,
+              properties: {
+                en: { type: Type.STRING },
+                ta: { type: Type.STRING },
+                tanglish: { type: Type.STRING }
+              },
+              required: ["en", "ta", "tanglish"]
+            },
+            darkTriad: {
+              type: Type.OBJECT,
+              properties: {
+                narcissism: { type: Type.NUMBER },
+                machiavellianism: { type: Type.NUMBER },
+                psychopathy: { type: Type.NUMBER }
+              },
+              required: ["narcissism", "machiavellianism", "psychopathy"]
             }
           },
-          required: ["personalityTraits", "honestyIndex", "emotionalStability", "hiddenConflicts", "socialMaskVsRealSelf", "summary"]
+          required: ["personalityTraits", "honestyIndex", "emotionalStability", "hiddenConflicts", "socialMaskVsRealSelf", "summary", "archetype", "darkTriad"]
         }
       }
     });

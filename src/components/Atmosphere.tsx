@@ -38,6 +38,7 @@ export function Atmosphere() {
 
     // Randomly show "The Watcher"
     const watcherInterval = setInterval(() => {
+      if (isMobile) return; // Disable on mobile
       if (Math.random() > 0.9) {
         setShowWatcher(true);
         setTimeout(() => setShowWatcher(false), 800);
@@ -46,7 +47,7 @@ export function Atmosphere() {
 
     // Randomly show subliminal messages
     const subliminalInterval = setInterval(() => {
-      if (Math.random() > 0.95) {
+      if (Math.random() > (isMobile ? 0.98 : 0.95)) {
         setSubliminal(MESSAGES[Math.floor(Math.random() * MESSAGES.length)]);
         setTimeout(() => setSubliminal(null), 150);
       }

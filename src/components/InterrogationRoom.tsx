@@ -119,6 +119,7 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
   const firstTypeTimeRef = useRef<number | null>(null);
   const editsCountRef = useRef(0);
   const sessionIdRef = useRef<string | null>(null);
+  const lastFollowUpIndexRef = useRef<number>(-1);
 
   useEffect(() => {
     // Initialize session
@@ -228,8 +229,13 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
       // Generate next question if needed
       let nextQuestion: Question | null = null;
       
-      // Sync every question and decide if follow-up is needed
-      if (questions.length < 15) {
+      // Decide if we should even attempt a follow-up to save API quota
+      // Criteria: Answer is very short (< 15 chars) OR it's been 5 questions since last follow-up
+      const shouldAttemptFollowUp = 
+        questions.length < 15 && 
+        (answer.trim().length < 15 || (currentIndex - lastFollowUpIndexRef.current) >= 5);
+
+      if (shouldAttemptFollowUp) {
         try {
           // Add a timeout safety net: if AI takes more than 8 seconds, just proceed to static questions
           const aiPromise = generateNextQuestion(updatedResponses, Math.min(10, currentQuestion.intensity + 1));
@@ -241,6 +247,7 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
           
           if (result.decision === 'FOLLOW_UP' && result.question) {
             nextQuestion = result.question;
+            lastFollowUpIndexRef.current = currentIndex;
           }
         } catch (err) {
           console.error("Next question generation failed", err);

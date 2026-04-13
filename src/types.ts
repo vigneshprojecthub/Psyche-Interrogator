@@ -40,4 +40,14 @@ export interface PsychologicalProfile {
     ta: string;
     tanglish: string;
   };
+  archetype: {
+    en: string;
+    ta: string;
+    tanglish: string;
+  };
+  darkTriad: {
+    narcissism: number;
+    machiavellianism: number;
+    psychopathy: number;
+  };
 }

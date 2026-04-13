@@ -35,6 +35,12 @@ export function AnalysisDashboard({ profile, userName }: AnalysisDashboardProps)
     { name: 'Neuroticism', value: profile.personalityTraits.neuroticism, icon: Brain },
   ];
 
+  const darkTriad = [
+    { name: 'Narcissism', value: profile.darkTriad.narcissism },
+    { name: 'Machiavellianism', value: profile.darkTriad.machiavellianism },
+    { name: 'Psychopathy', value: profile.darkTriad.psychopathy },
+  ];
+
   const handleDownloadPDF = async () => {
     if (!reportRef.current) return;
     setIsExporting(true);
@@ -137,9 +143,12 @@ export function AnalysisDashboard({ profile, userName }: AnalysisDashboardProps)
             <div className="lg:col-span-2 space-y-8 md:space-y-12">
               <section className="space-y-6">
                 <h3 className="font-mono text-[10px] uppercase tracking-widest border-l-2 border-safe-red-900 pl-4" style={{ color: 'rgba(127,29,29,0.4)', borderColor: '#7f1d1d' }}>Neural Autopsy</h3>
-                <p className="text-xl md:text-3xl font-light leading-relaxed italic" style={{ color: '#a8a29e' }}>
-                  {profile.summary[lang]}
-                </p>
+                <div className="space-y-2">
+                  <span className="font-serif text-sm italic text-red-900/60 uppercase tracking-widest">Archetype: {profile.archetype[lang]}</span>
+                  <p className="text-xl md:text-3xl font-light leading-relaxed italic" style={{ color: '#a8a29e' }}>
+                    {profile.summary[lang]}
+                  </p>
+                </div>
               </section>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
@@ -185,6 +194,42 @@ export function AnalysisDashboard({ profile, userName }: AnalysisDashboardProps)
                 <p className="text-base md:text-xl font-light leading-relaxed italic" style={{ color: '#78716c' }}>
                   "{profile.socialMaskVsRealSelf[lang]}"
                 </p>
+              </section>
+
+              <section className="space-y-8">
+                <h3 className="font-mono text-[10px] uppercase tracking-widest" style={{ color: 'rgba(127,29,29,0.4)' }}>Dark Triad Analysis</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  {darkTriad.map((trait) => (
+                    <div key={trait.name} className="space-y-4 text-center">
+                      <div className="relative w-16 h-16 md:w-24 md:h-24 mx-auto">
+                        <svg className="w-full h-full -rotate-90">
+                          <circle
+                            cx="50%"
+                            cy="50%"
+                            r="45%"
+                            className="fill-none stroke-stone-900 stroke-2"
+                          />
+                          <motion.circle
+                            cx="50%"
+                            cy="50%"
+                            r="45%"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: trait.value / 100 }}
+                            transition={{ duration: 2, ease: "easeOut" }}
+                            className="fill-none stroke-red-900 stroke-2"
+                            style={{ strokeDasharray: "1 0" }}
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="font-serif italic text-lg md:text-2xl text-red-950">{trait.value}%</span>
+                        </div>
+                      </div>
+                      <span className="block font-mono text-[8px] md:text-[10px] uppercase tracking-widest text-stone-600">
+                        {trait.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </section>
             </div>
 
