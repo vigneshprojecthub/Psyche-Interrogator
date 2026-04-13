@@ -121,19 +121,19 @@ export function AnalysisDashboard({ profile, userName }: AnalysisDashboardProps)
           className="space-y-12 md:space-y-16 p-6 md:p-12 rounded-3xl border border-safe-stone-900"
           style={{ backgroundColor: 'rgba(0,0,0,0.2)', borderColor: '#1c1917' }}
         >
-          <header className="space-y-4 border-b border-safe-red-900/20 pb-8" style={{ borderColor: 'rgba(69,10,10,0.2)' }}>
+          <header className="space-y-4 border-b border-red-900/40 pb-8" style={{ borderColor: 'rgba(127,29,29,0.3)' }}>
             <div className="flex justify-between items-start">
               <div className="space-y-1">
-                <span className="font-mono text-[10px] uppercase tracking-[0.5em]" style={{ color: 'rgba(127,29,29,0.6)' }}>
+                <span className="font-mono text-[10px] uppercase tracking-[0.5em] text-red-500/80">
                   Extraction Complete // Protocol 04-9
                 </span>
-                <h1 className="font-serif text-4xl md:text-7xl tracking-tighter" style={{ color: '#e7e5e4' }}>
-                  The <span className="italic" style={{ color: '#7f1d1d' }}>Post-Mortem</span> Profile
+                <h1 className="font-serif text-4xl md:text-7xl tracking-tighter text-stone-200">
+                  The <span className="italic text-red-600">Post-Mortem</span> Profile
                 </h1>
               </div>
-              <div className="text-right font-mono text-[10px] uppercase tracking-widest" style={{ color: '#57534e' }}>
-                Subject ID: {userName.substring(0, 8)}<br/>
-                Status: <span style={{ color: '#7f1d1d' }}>EXTRACTED</span>
+              <div className="text-right font-mono text-[10px] uppercase tracking-widest text-stone-500">
+                Subject: <span className="text-stone-300">{userName}</span><br/>
+                Status: <span className="text-red-600 font-bold">EXTRACTED</span>
               </div>
             </div>
           </header>
@@ -153,36 +153,34 @@ export function AnalysisDashboard({ profile, userName }: AnalysisDashboardProps)
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
                 <section className="space-y-4">
-                  <h3 className="font-mono text-[10px] uppercase tracking-widest flex items-center gap-2" style={{ color: 'rgba(127,29,29,0.4)' }}>
+                  <h3 className="font-mono text-[10px] uppercase tracking-widest flex items-center gap-2 text-red-500/60">
                     <ShieldAlert className="w-3 h-3" /> Deception Level
                   </h3>
                   <div className="flex items-end gap-4">
-                    <span className="text-4xl md:text-6xl font-serif italic" style={{ color: '#7f1d1d' }}>{profile.honestyIndex}%</span>
-                    <div className="flex-1 h-1 rounded-full mb-3 md:mb-4 overflow-hidden" style={{ backgroundColor: 'rgba(69,10,10,0.1)' }}>
+                    <span className="text-4xl md:text-6xl font-serif italic text-red-600">{profile.honestyIndex}%</span>
+                    <div className="flex-1 h-1 rounded-full mb-3 md:mb-4 overflow-hidden bg-red-950/20">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${profile.honestyIndex}%` }}
                         transition={{ duration: 2, ease: "easeOut" }}
-                        className="h-full" 
-                        style={{ backgroundColor: '#7f1d1d' }}
+                        className="h-full bg-red-600" 
                       />
                     </div>
                   </div>
                 </section>
 
                 <section className="space-y-4">
-                  <h3 className="font-mono text-[10px] uppercase tracking-widest flex items-center gap-2" style={{ color: 'rgba(127,29,29,0.4)' }}>
+                  <h3 className="font-mono text-[10px] uppercase tracking-widest flex items-center gap-2 text-stone-500">
                     <TrendingUp className="w-3 h-3" /> Fragility
                   </h3>
                   <div className="flex items-end gap-4">
-                    <span className="text-4xl md:text-6xl font-serif italic" style={{ color: '#57534e' }}>{100 - profile.emotionalStability}%</span>
-                    <div className="flex-1 h-1 rounded-full mb-3 md:mb-4 overflow-hidden" style={{ backgroundColor: 'rgba(28,25,23,0.1)' }}>
+                    <span className="text-4xl md:text-6xl font-serif italic text-stone-400">{100 - profile.emotionalStability}%</span>
+                    <div className="flex-1 h-1 rounded-full mb-3 md:mb-4 overflow-hidden bg-stone-900/40">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${100 - profile.emotionalStability}%` }}
                         transition={{ duration: 2, ease: "easeOut", delay: 0.5 }}
-                        className="h-full" 
-                        style={{ backgroundColor: '#292524' }}
+                        className="h-full bg-stone-600" 
                       />
                     </div>
                   </div>
@@ -221,10 +219,10 @@ export function AnalysisDashboard({ profile, userName }: AnalysisDashboardProps)
                           />
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="font-serif italic text-lg md:text-2xl text-red-950">{trait.value}%</span>
+                          <span className="font-serif italic text-lg md:text-2xl text-red-600">{trait.value}%</span>
                         </div>
                       </div>
-                      <span className="block font-mono text-[8px] md:text-[10px] uppercase tracking-widest text-stone-600">
+                      <span className="block font-mono text-[8px] md:text-[10px] uppercase tracking-widest text-stone-500">
                         {trait.name}
                       </span>
                     </div>

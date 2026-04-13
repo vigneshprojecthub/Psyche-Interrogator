@@ -46,7 +46,7 @@ let isThrottled = false;
 let throttleTimer: NodeJS.Timeout | null = null;
 
 export async function generateNextQuestion(
-  previousResponses: { q: string; a: string }[],
+  previousResponses: { q: string; a: string; responseTime: number; typingStartDelay: number; editsCount: number }[],
   intensity: number
 ): Promise<{ decision: 'FOLLOW_UP' | 'PROCEED'; question?: Question }> {
   if (isThrottled) {
@@ -60,9 +60,15 @@ export async function generateNextQuestion(
     Analyze this response (it may be in English, Tamil, or Tanglish):
     Q: ${lastResponse.q}
     A: ${lastResponse.a}
+    
+    Behavioral Data:
+    - Time taken to answer: ${Math.round(lastResponse.responseTime / 1000)} seconds.
+    - Delay before starting to type: ${Math.round(lastResponse.typingStartDelay / 1000)} seconds.
+    - Number of edits/backspaces: ${lastResponse.editsCount}.
 
     Decision:
-    - Perform a DEEP PSYCHOLOGICAL ANALYSIS of the answer.
+    - Perform a DEEP PSYCHOLOGICAL ANALYSIS of the answer AND the behavioral data.
+    - Long delays or high edit counts often indicate hesitation, fabrication, or deep emotional suppression.
     - You are a paranoid interrogator. Your default stance is that the subject is LYING or HIDING something.
     - Return FOLLOW_UP unless the subject has provided a response that is so raw, vulnerable, and self-incriminating that no further probing is required.
     - If the answer is surface-level, polite, or "safe," you MUST return FOLLOW_UP.
@@ -117,13 +123,18 @@ export async function generateNextQuestion(
 }
 
 export async function generateFinalProfile(
-  responses: { q: string; a: string }[]
+  responses: { q: string; a: string; responseTime: number; typingStartDelay: number; editsCount: number }[]
 ): Promise<PsychologicalProfile> {
   const prompt = `
     Generate an IN-DEPTH psychological profile based on these interrogation results:
-    ${responses.map(r => `Q: ${r.q}\nA: ${r.a}`).join('\n\n')}
+    ${responses.map(r => `
+      Q: ${r.q}
+      A: ${r.a}
+      Behavior: ${Math.round(r.responseTime / 1000)}s total, ${Math.round(r.typingStartDelay / 1000)}s delay, ${r.editsCount} edits.
+    `).join('\n\n')}
 
     The subject may have answered in English, Tamil, or Tanglish. Analyze the subtext and emotional patterns across all languages.
+    Use the behavioral data (timing, delays, edits) to judge honesty and emotional stability.
 
     Provide the profile in three formats:
     - en: English

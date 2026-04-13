@@ -193,13 +193,30 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
         }).catch(err => handleFirestoreError(err, OperationType.CREATE, path));
       }
 
-      const updatedResponses = [...allResponses, { q: currentQuestion[lang], a: answer }];
+      const updatedResponses = [
+        ...allResponses, 
+        { 
+          q: currentQuestion[lang], 
+          a: answer,
+          responseTime: responseData.responseTime,
+          typingStartDelay: responseData.typingStartDelay,
+          editsCount: responseData.answerEditsCount
+        }
+      ];
       setAllResponses(updatedResponses);
 
       // If it's the last question, generate profile
       if (currentIndex >= questions.length - 1) {
         try {
-          const finalProfile = await generateFinalProfile(updatedResponses);
+          const finalProfile = await generateFinalProfile(
+            updatedResponses.map(r => ({ 
+              q: r.q, 
+              a: r.a, 
+              responseTime: r.responseTime || 0, 
+              typingStartDelay: r.typingStartDelay || 0, 
+              editsCount: r.editsCount || 0 
+            }))
+          );
           if (sessionIdRef.current) {
             const path = 'sessions';
             await setDoc(doc(db, path, sessionIdRef.current), {
@@ -238,7 +255,16 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
         console.log("Attempting AI follow-up analysis...");
         try {
           // Add a timeout safety net: if AI takes more than 8 seconds, just proceed to static questions
-          const aiPromise = generateNextQuestion(updatedResponses, Math.min(10, currentQuestion.intensity + 1));
+          const aiPromise = generateNextQuestion(
+            updatedResponses.map(r => ({ 
+              q: r.q, 
+              a: r.a, 
+              responseTime: r.responseTime || 0, 
+              typingStartDelay: r.typingStartDelay || 0, 
+              editsCount: r.editsCount || 0 
+            })), 
+            Math.min(10, currentQuestion.intensity + 1)
+          );
           const timeoutPromise = new Promise<{ decision: 'PROCEED' }>(resolve => 
             setTimeout(() => {
               console.warn("AI follow-up timed out after 8s");
