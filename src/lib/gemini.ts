@@ -62,13 +62,13 @@ export async function generateNextQuestion(
 
     Decision:
     - Perform a DEEP PSYCHOLOGICAL ANALYSIS of the answer.
-    - If the subject is hiding something, being inconsistent, or showing high emotional avoidance, return FOLLOW_UP.
-    - If the answer is genuinely transparent and deep, return PROCEED.
-    - DO NOT use answer length as a metric. Look for the "Neural Signature" of a lie or trauma.
-    - Analyze the subtext of Tamil/Tanglish responses for hidden contradictions.
+    - If the subject is hiding something, being inconsistent, showing high emotional avoidance, or providing a surface-level response that lacks raw honesty, return FOLLOW_UP.
+    - If the answer is genuinely transparent, deep, and vulnerable, return PROCEED.
+    - Analyze the subtext of Tamil/Tanglish responses for hidden contradictions and masked emotions.
 
     Follow-up Question Requirements:
-    - Must be "Strongest": Directly confront the subject's hesitation, call out a specific contradiction, or use a "cold reading" technique to unsettle them.
+    - Must be "Strongest" and "Risky": Directly confront the subject's hesitation, call out a specific contradiction, or use a "cold reading" technique to unsettle them.
+    - Ask something that makes them uncomfortable, something they would never want to admit.
     - Do not be polite. Be clinical, cold, and intellectually superior.
     - Intensity: ${intensity}/10.
     - Provide in en, ta, tanglish.

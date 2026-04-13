@@ -230,11 +230,11 @@ export function InterrogationRoom({ userName, onComplete }: InterrogationRoomPro
       let nextQuestion: Question | null = null;
       
       // Decide if we should attempt a follow-up to save API quota
-      // Criteria: It's been at least 2 questions since the last follow-up
+      // Criteria: It's been at least 3 questions since the last follow-up
       // This ensures they are "not frequent" while allowing deep analysis on every few questions
       const shouldAttemptFollowUp = 
         questions.length < 15 && 
-        (currentIndex - lastFollowUpIndexRef.current) >= 2;
+        (currentIndex - lastFollowUpIndexRef.current) >= 3;
 
       if (shouldAttemptFollowUp) {
         try {
